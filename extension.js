@@ -83,6 +83,14 @@ function proxyCommand(extraEnv = []) {
     return `${exe('ssh')} -q ${LOGIN} "${env.join(' ')}"`;
 }
 
+// ssh refuses to run at all if the control socket path is too long (104 bytes on macOS),
+// so multiplexing is only used when the path fits; Windows OpenSSH can't multiplex.
+function muxPath(netid) {
+    if (IS_WIN) return undefined;
+    const p = path.join(SSH_DIR, `gix-cm-${netid}`);
+    return Buffer.byteLength(p) <= 100 ? p : undefined;
+}
+
 function configBlock(netid) {
     const host = checked(cfg().get('loginHost'), /^[A-Za-z0-9.:-]+$/, 'loginHost');
     const nul = IS_WIN ? 'NUL' : '/dev/null';
@@ -94,6 +102,13 @@ function configBlock(netid) {
         `    IdentityFile "${KEY}"`,
         `    IdentitiesOnly yes`,
         `    StrictHostKeyChecking accept-new`,
+        // one authenticated connection for status checks and the ProxyCommand: every new
+        // login costs an AD/SSSD account check on gix-login (Windows OpenSSH can't multiplex)
+        ...(muxPath(netid) ? [
+            `    ControlMaster auto`,
+            `    ControlPath "${muxPath(netid)}"`,
+            `    ControlPersist 10m`,
+        ] : []),
         ``,
         `Host ${GPU}`,
         `    HostName gix-gpu-job`,
@@ -355,7 +370,7 @@ async function openProject(entry) {
                 const s = await jobStatus();
                 if (s.kind === 'pending') progress.report({ message: 'all GPUs busy, waiting in the queue...' });
                 if (s.kind === 'running') progress.report({ message: `got ${s.node}, preparing ${name}...` });
-            }, 8000);
+            }, 20000);
             try {
                 return await sshBatch(GPU, prep, 11 * 60 * 1000, extra);
             } finally {
@@ -534,7 +549,15 @@ function activate(context) {
     vscode.commands.executeCommand('setContext', 'gix.signedIn', signedIn());
     render(signedIn() ? { kind: 'unknown' } : { kind: 'signedOut' });
     if (signedIn()) refresh();
-    pollTimer = setInterval(() => signedIn() && refresh(), 60000);
+    // every 60 s; while offline only every 5 min, so a laptop off UW IoT doesn't keep knocking
+    let lastPoll = 0;
+    pollTimer = setInterval(() => {
+        if (!signedIn()) return;
+        const wait = lastStatus.kind === 'offline' ? 300000 : 60000;
+        if (Date.now() - lastPoll < wait - 1000) return;
+        lastPoll = Date.now();
+        refresh();
+    }, 60000);
 }
 
 function deactivate() {}

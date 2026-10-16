@@ -2,7 +2,7 @@
   "name": "gix-gpu",
   "displayName": "GIX GPU",
   "description": "GPU devcontainers on the GIX Slurm cluster for any course or project: sign in once, start a GPU workspace, release the GPU when done.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "uw-gix",
   "license": "MIT",
   "engines": {

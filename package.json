@@ -1,0 +1,176 @@
+{
+  "name": "gix-gpu",
+  "displayName": "GIX GPU",
+  "description": "GPU devcontainers on the GIX Slurm cluster for any course or project: sign in once, start a GPU workspace, release the GPU when done.",
+  "version": "0.2.0",
+  "publisher": "uw-gix",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "extensionDependencies": [
+    "ms-vscode-remote.remote-ssh",
+    "ms-vscode-remote.remote-containers"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "gix.signIn",
+        "title": "Sign in",
+        "category": "GIX GPU",
+        "icon": "$(account)"
+      },
+      {
+        "command": "gix.start",
+        "title": "Start GPU workspace",
+        "category": "GIX GPU",
+        "icon": "$(play)"
+      },
+      {
+        "command": "gix.release",
+        "title": "Release GPU",
+        "category": "GIX GPU",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "gix.refresh",
+        "title": "Refresh status",
+        "category": "GIX GPU",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "gix.menu",
+        "title": "Menu",
+        "category": "GIX GPU"
+      },
+      {
+        "command": "gix.settings",
+        "title": "Settings",
+        "category": "GIX GPU",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "gix.openRecent",
+        "title": "Open recent project",
+        "category": "GIX GPU"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "gix",
+          "title": "GIX GPU",
+          "icon": "media/gix.svg"
+        }
+      ]
+    },
+    "views": {
+      "gix": [
+        {
+          "id": "gix.panel",
+          "name": "GPU",
+          "icon": "media/gix.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "gix.panel",
+        "contents": "Run your devcontainer on a GIX RTX 5090 (any course or project). You need to be on UW IoT.\n[Sign in with NetID](command:gix.signIn)",
+        "when": "!gix.signedIn"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "gix.refresh",
+          "when": "view == gix.panel && gix.signedIn",
+          "group": "navigation"
+        },
+        {
+          "command": "gix.settings",
+          "when": "view == gix.panel",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "gix.openRecent",
+          "when": "false"
+        },
+        {
+          "command": "gix.menu",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "GIX GPU",
+      "properties": {
+        "gix.netid": {
+          "type": "string",
+          "default": "",
+          "description": "Your UW NetID (filled in by Sign in)."
+        },
+        "gix.loginHost": {
+          "type": "string",
+          "default": "10.155.32.7",
+          "description": "Address of the cluster login host (gix-30292619)."
+        },
+        "gix.gres": {
+          "type": "string",
+          "default": "shard:1",
+          "enum": [
+            "shard:1",
+            "gpu:1"
+          ],
+          "enumDescriptions": [
+            "A quarter of an RTX 5090 (shared with 3 others)",
+            "A whole RTX 5090 (may wait longer)"
+          ],
+          "description": "GPU share to request."
+        },
+        "gix.cpus": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 16,
+          "description": "CPU cores to request."
+        },
+        "gix.mem": {
+          "type": "string",
+          "default": "12G",
+          "pattern": "^[0-9]+[KMGT]?$",
+          "description": "RAM to request, e.g. 12G."
+        },
+        "gix.time": {
+          "type": "string",
+          "default": "04:00:00",
+          "pattern": "^[0-9:-]+$",
+          "description": "Maximum job length, e.g. 04:00:00."
+        },
+        "gix.idleMinutes": {
+          "type": "integer",
+          "default": 30,
+          "minimum": 0,
+          "description": "Release the GPU after this many minutes with VS Code disconnected (0 = only at the time limit)."
+        },
+        "gix.node": {
+          "type": "string",
+          "default": "",
+          "description": "Admins/pilots only: pin to one node, e.g. gix-30292622. Leave empty to let Slurm choose."
+        }
+      }
+    }
+  }
+}

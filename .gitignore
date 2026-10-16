@@ -1,0 +1,4 @@
+# build output; release builds are copied to dist/
+/*.vsix
+node_modules/
+/gix-gpu-*/
